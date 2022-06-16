@@ -17,22 +17,45 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.BevelBorder;
+/*
+Класс Components содержит данные о компонентах калькулятора.
+В создании графического интерфейса участвуют три метода:
+display(), buttons(), bottomButtons(). Два вложенных класса:
+ActionInput и ActionCommand обрабатывают события, связанные с
+нажатием на кнопки и обеспечивают функционирование приложения 
+именно как счетного устройства. Класс ActionInput работает с
+"глупыми" кнопками и обеспечивает ввод данных и их редактирование.
+Класс ActionCommand работает с "умными" кнопками и обеспечивает 
+математические вычисления, обработку математических ошибок и 
+корректное отображение результатов вычислений.
+*/
 
 public class Components extends JPanel{
-
-    JTextField textField;
-    JButton[] buttons;
-    JButton equalButton;
-    JButton clearButton;
-    boolean start;
-    boolean error = false;
-    String lastCommand;
-    String lastActionCommand;
-    BigDecimal result = BigDecimal.ZERO;
-    BigDecimal current = BigDecimal.ZERO;
-    int counter;
-    MathContext mathContext = new MathContext(7);
-    
+// поля, относящиесы к графическому интерфейсу
+    private JTextField textField;
+    private JButton[] buttons;
+    private JButton equalButton;
+    private JButton clearButton;
+// поля, нужные для работы калькулятора
+// маркер для определения стартует ли строка на экране с 0 или там что-то уже есть.    
+    private boolean start; 
+// маркер для определения было ли брошено исключение при делении на 0 или попытке 
+// извлечь корень из отрицательного числа    
+    private boolean error = false;
+// Определяет, какая последняя была команда: "глупая" - input или "умная" - command    
+    private String lastCommand;
+// Определяет, какая из "умных" команд была последняя: +, -, *, /, % или корень    
+    private String lastActionCommand = "=";
+// две переменных для математики.    
+    private BigDecimal result = BigDecimal.ZERO;
+    private BigDecimal current = BigDecimal.ZERO;
+// счетчик "умных" команд    
+    private int counter;
+// является аргументом в некоторых методах класса BigDecimal, определяет кол-во символов
+// в строковом представлении числа. Подбирается так, чтобы цифры не вылезали за пределы 
+// textField.    
+    private final MathContext mathContext = new MathContext(12);
+ //дисплей калькулятора   
     public Component display(){
         JPanel textPanel = new JPanel(new GridLayout(0, 1, 5, 5));
         textPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -47,7 +70,8 @@ public class Components extends JPanel{
               BorderFactory.createEmptyBorder(10, 10, 10, 10)));
         textPanel.add(textField);              
      return textPanel;        
-    } 
+    }
+ // кнопки калькулятора, кроме кнопок равно и Clear   
     public Component buttons(){
         String[] buttonText = {"%","7","8","9","\u00F7","\u221A","4","5","6",
                       "\u00D7","\u2192","1","2","3","-","+/-","0","00",".","+"};
@@ -85,7 +109,8 @@ public class Components extends JPanel{
         
       return battonsPanel;
     }
-    public Component equalButton(){
+ // кнопки равно и Clear   
+    public Component bottomButtons(){
         JPanel equalPanel = new JPanel();
         equalPanel.setLayout(new BoxLayout(equalPanel, BoxLayout.X_AXIS)); 
         equalPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
@@ -112,61 +137,66 @@ public class Components extends JPanel{
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));   
     }
     
-    
+// вложенный класс ActionInput - ввод и редактирование чисел    
         
 public class ActionInput implements ActionListener{
         Components components;
 
-        public ActionInput(Components components) {
+    public ActionInput(Components components) {
             this.components = components;
             textField.setText("0");
             lastCommand = "input";
         }
         @Override
-        public void actionPerformed(ActionEvent e) {
-            
+    public void actionPerformed(ActionEvent e) {
+ // при нажатии кнопки Clear, на экран выводится 0 и часть полей класса сбрасывается.        
+        if(e.getActionCommand().equals("C")) {
+            textField.setText("0");
+            lastCommand = "input";
+            result = BigDecimal.ZERO;
+            current = BigDecimal.ZERO;
+            counter = 0;
+            lastActionCommand = "=";
+        }
+// это условие блокирует добавление цифр на экран к результату вычислений корня и
+// опреаций с процентами 
+        if(!(lastActionCommand.equals("%") || lastActionCommand.equals("\u221A")))     
+        {
+// это условие обеспечивает корректный ввод следующего числа после выполнения мат.опреации            
         if(lastCommand.equals("command") && !e.getActionCommand().equals("+/-"))
            textField.setText("0"); 
-
+//ввод чисел
         start = textField.getText().equals("0"); 
         String b;
-        Character a = e.getActionCommand().charAt(0);
-        if(Character.isDigit(a) && e.getActionCommand().length() == 1) {
+        Character firstChar = e.getActionCommand().charAt(0);
+        if(Character.isDigit(firstChar) && e.getActionCommand().length() == 1) {
             if(start) {    
-               textField.setText("");
-               textField.setText(a.toString()); }
+               textField.setText(firstChar.toString()); }
             else {
                b = textField.getText();               
-               b += a.toString();
+               b += firstChar.toString();
                textField.setText(b); }              
            }
-        if(e.getActionCommand().equals("00"))
-            doubleZero();
-        if(e.getActionCommand().equals("+/-"))
-            inverse();
-                    
-        switch (a) {
-            case 'C': 
-                textField.setText("0");
-                lastCommand = "input";
-                result = BigDecimal.ZERO;
-                current = BigDecimal.ZERO;
-                counter = 0;
-                break;
-            case '\u2192':
-                delete();  
+ //не цифры.        
+        switch (e.getActionCommand()) {
+                case "\u2192":
+                     delete();  
                 break; 
-            case '.':
-                dot();
+                case ".":
+                     dot();
                 break;
-                       }
+                case "00":
+                     doubleZero();
+                break;
+                case "+/-":
+                     inverse();
+                break;  }  
+
         lastCommand = "input";
         current = new BigDecimal(textField.getText());
-        System.out.println("i lastcommand " + lastCommand);
-        System.out.println("i lastActionCommand = " + lastActionCommand);
-        System.out.println("i current = " + current.toString());
-        System.out.println("i result = " + result.toString());
-    }
+        }
+    }     
+    //метод обеспечивает корректную работу с десятичной точкой    
     public void dot(){
         String s;
         if(start)
@@ -176,7 +206,8 @@ public class ActionInput implements ActionListener{
                s = textField.getText();
                textField.setText(s + ".");    }
     }
-     public void delete(){
+    //метод удаляет правый(последний) символ введенного числа
+    public void delete(){
         String s = textField.getText();
         if(s.length()>1) {
            s = s.substring(0, s.length()-1);
@@ -184,49 +215,57 @@ public class ActionInput implements ActionListener{
         else
            textField.setText("0"); 
     }
-     public void doubleZero(){
-        String s;
-        if(!start) {
-           s = textField.getText();
-           textField.setText(s + "00"); } 
+    //метод позволяет вводить сразу по две цифры "0". 
+    public void doubleZero(){
+        if(!start) 
+          textField.setText(textField.getText() + "00"); 
     }
-     public void inverse(){
+    //метод меняет знак введенного числа на противоположный 
+    public void inverse(){
          BigDecimal temp = new BigDecimal(textField.getText());
          temp = temp.multiply(new BigDecimal(-1));
          textField.setText(temp.toString());
       }
  }
-        
+
+//вложенный класс ActionCommand - вычисления и вывод результатов на дисплей.  
+
 public class ActionCommand implements ActionListener {
         Components components;
+        String currAction;
 
         public ActionCommand(Components components) {
             this.components = components;
         }        
         @Override
         public void actionPerformed(ActionEvent e) {
-            String currAction = e.getActionCommand();
+            currAction = e.getActionCommand();
+//...если нажата кнопка "%"           
+            if(currAction.equals("%")) {
+                lastCommand = "command";
+                percent(); }
+//...если нажата одна из кнопок, соответствующая простым арифметическим действиям.            
             if((currAction.equals("+") || currAction.equals("-") || currAction.equals("\u00D7") || 
                currAction.equals("\u00F7")) && !lastCommand.equals("command")) 
             { 
                 if(counter > 0) {
                    current = new BigDecimal(textField.getText());  
                    switch(lastActionCommand) {
-                          case "+":
-                          result = result.add(current, mathContext);
-                          break;
-                          case "-":
-                          result = result.subtract(current, mathContext);
-                          break;
-                          case "\u00D7":
-                          result = result.multiply(current, mathContext);
-                          break;
-                          case "\u00F7":
-                              try 
-                                  {result = result.divide(current, mathContext);}
-                              catch(ArithmeticException ae) 
-                                   {error = true;}
-                              break; } 
+                        case "+":
+                            result = result.add(current, mathContext);
+                            break;
+                        case "-":
+                            result = result.subtract(current, mathContext);
+                            break;
+                        case "\u00D7":
+                            result = result.multiply(current, mathContext);
+                            break;
+                        case "\u00F7":
+                            try 
+                               {result = result.divide(current, mathContext);}
+                            catch(ArithmeticException ae) 
+                               {error = true;}
+                            break; } 
                    mathematicalError();
                    lastActionCommand = e.getActionCommand();
                 }
@@ -236,6 +275,7 @@ public class ActionCommand implements ActionListener {
                 lastCommand = "command";
                 lastActionCommand = e.getActionCommand();
             }
+//...если требуется вычилить корень квадратный            
             else if (currAction.equals("\u221A")) {
                  try 
                     {current = new BigDecimal(textField.getText(), mathContext);  
@@ -247,52 +287,66 @@ public class ActionCommand implements ActionListener {
                  mathematicalError();
                  lastActionCommand = e.getActionCommand();
             }
+//...нажата кнопка "="            
             else if(currAction.equals("=") && !lastCommand.equals("command")) {
                 switch(lastActionCommand) {
-                          case "+":
-                          result = result.add(current, mathContext);
-                          break;
-                          case "-":
-                          result = result.subtract(current, mathContext);
-                          break;
-                          case "\u00D7":
-                          result = result.multiply(current, mathContext);
-                          break;
-                          case "\u221A":
-                          break;
-                          case "\u00F7":
-                              try 
-                                  {result = result.divide(current, mathContext);}
-                              catch(ArithmeticException ae) 
-                                   {error = true;}
-                              break; } 
+                        case "+":
+                            result = result.add(current, mathContext);
+                            break;
+                        case "-":
+                            result = result.subtract(current, mathContext);
+                            break;
+                        case "\u00D7":
+                            result = result.multiply(current, mathContext);
+                            break;
+                        case "\u221A":
+                            break;
+                        case "\u00F7":
+                            try 
+                               {result = result.divide(current, mathContext);}
+                        catch(ArithmeticException ae) 
+                               {error = true;}
+                            break; } 
                    mathematicalError();
                    result = BigDecimal.ZERO;
                    current = BigDecimal.ZERO;
                    lastActionCommand = e.getActionCommand();
                    lastCommand = "command";
-                   counter = 0;
-                   
+                   counter = 0;                   
             }
-            System.out.println(counter);
-            System.out.println("lastActioncommand " + lastActionCommand);
-            System.out.println("result = " + result.toString());
-            System.out.println("current = " + current.toString());
-            System.out.println("lastcommand " + lastCommand);
         }
-
+//метод обеспечивает действия с процентами по аналогии с обычным калькуллятором.
         public void percent(){
-            
+            current = current.divide(new BigDecimal(100)); 
+            switch(lastActionCommand) {
+                    case "+":
+                        result = result.add(result.multiply(current), mathContext);
+                        break;
+                    case "-":
+                        result = result.subtract(result.multiply(current), mathContext);
+                        break;
+                    case "\u00D7":
+                        result = result.multiply(current, mathContext);
+                        break;
+                    case "\u00F7":
+                        try 
+                            {result = result.divide(current, mathContext);}
+                    catch(ArithmeticException ae) 
+                            {error = true;}
+                        break; }
+            lastCommand = "input";
+            mathematicalError();
+            lastActionCommand = currAction;
         }
-
+// метод выводит на экран результат, либо сообщение об ошибке, если выброшено ArithmeticException.
         public  void mathematicalError(){
             if(!error)
-               if(result.compareTo(BigDecimal.ZERO) == 0) 
+              if(result.compareTo(BigDecimal.ZERO) == 0) 
                   textField.setText("0");
                else if(result.compareTo(BigDecimal.ONE.multiply(new BigDecimal(-1))) == 1 && result.compareTo(BigDecimal.ONE) == -1)
                    textField.setText(result.setScale(10, RoundingMode.CEILING).toString());
-               else
-                  textField.setText(result.toString());   
+               else  
+                   textField.setText(result.toPlainString());   
             else  {
                 textField.setText("error");
                 error = false;

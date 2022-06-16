@@ -3,7 +3,6 @@ package Dev_J_120;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-
 import javax.swing.JFrame;
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE;
 
@@ -17,7 +16,7 @@ public class MainFrame extends JFrame {
         setLocation(200, 100);
         add(myComponents.display(),BorderLayout.NORTH);
         add(myComponents.buttons(),BorderLayout.CENTER);
-        add(myComponents.equalButton(), BorderLayout.SOUTH);         
+        add(myComponents.bottomButtons(), BorderLayout.SOUTH);         
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setVisible(true);         
     }   
